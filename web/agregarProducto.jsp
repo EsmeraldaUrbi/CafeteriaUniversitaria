@@ -29,7 +29,6 @@
 
 <body class="principal-body">
 
-<!-- ======= HEADER EMPLEADO ======= -->
 <header class="header-cliente">
 
     <div class="logo-cliente">
@@ -37,70 +36,93 @@
         <span>DonMeow</span>
     </div>
 
-    <input type="text" class="buscar" placeholder="Buscar productos…">
+    <form action="BuscarProducto" method="GET" class="form-buscar">
+        <input type="text" name="q" class="buscar" placeholder="Buscar productos…">
+    </form>
+
 
     <nav class="nav-cliente">
-        <a href="panelEmpleado.jsp" class="nav-link-emp">🍽️ Pedidos</a>
-        <a href="gestionMenu.jsp" class="nav-link-emp">📋 Gestión de Menú</a>
-        <a href="logout.jsp" class="nav-link-emp">Cerrar Sesión</a>
+        <div class="menu-pedidos-emp" data-dropdown>
+            <span class="menu-trigger-emp" data-trigger>Pedidos</span>
+
+            <ul class="menu-list-emp" data-menu>
+                <li><a href="historialPedidosEmpleado.jsp">Historial</a></li>
+                <li><a href="panelEmpleado.jsp">Gestión</a></li>
+            </ul>
+        </div>
+
+        <a href="gestionMenu.jsp" class="nav-link-emp">Gestión de Menú</a>
+        <a href="CerrarSesion" class="nav-link-emp">Cerrar Sesión</a>
     </nav>
 
 </header>
 
-<!-- ======= REGRESAR ======= -->
-<a href="gestionMenu.jsp" class="regresar-link">⟵ Regresar</a>
+<article class="contenido">
+    <a href="javascript:history.back()" class="regresar-link">⟵ Regresar</a>
 
-<!-- ======= CONTENEDOR GENERAL ======= -->
-<div class="agregar-container">
 
-    <!-- FORMULARIO -->
-    <div class="agregar-form">
+    <div class="agregar-container">
 
-        <h1>Agregar nuevo producto</h1>
+        <div class="agregar-form">
 
-        <form action="AgregarProducto" method="post" enctype="multipart/form-data">
+            <h1>Agregar nuevo producto</h1>
 
-            <div class="fila-inputs">
-                <input type="text" name="nombre" placeholder="Nombre" required>
-                <input type="number" name="precio" placeholder="Precio" step="0.01" required>
-            </div>
+            <form action="AgregarProducto" method="post" enctype="multipart/form-data">
 
-            <textarea name="descripcion" placeholder="Descripción" required></textarea>
+                <div class="fila-inputs">
+                    <input type="text" name="nombre" placeholder="Nombre" required>
+                    <input type="number" name="precio" placeholder="Precio" step="0.01" required>
+                </div>
 
-            <div class="fila-inputs">
+                <textarea name="descripcion" placeholder="Descripción" required></textarea>
 
-                <!-- Categoría -->
-                <select name="categoria" required>
-                    <option value="">Categoría</option>
-                    <% while(rsCat.next()){ %>
-                        <option value="<%= rsCat.getInt("idCategoria") %>">
-                            <%= rsCat.getString("nombre") %>
-                        </option>
-                    <% } %>
-                </select>
+                <div class="fila-inputs">
 
-                <!-- Imagen -->
-                <input type="file" name="imagen" required>
-            </div>
+                    <select name="categoria" required>
+                        <option value="">Categoría</option>
+                        <% while(rsCat.next()){ %>
+                            <option value="<%= rsCat.getInt("idCategoria") %>">
+                                <%= rsCat.getString("nombre") %>
+                            </option>
+                        <% } %>
+                    </select>
 
-            <!-- Activo -->
-            <label class="checkbox-activo">
-                <input type="checkbox" name="activo" checked>
-                Producto Activo
-            </label>
+                    <input type="file" name="imagen" required>
+                </div>
 
-            <button type="submit" class="btn-guardar">Guardar cambios</button>
+                <label class="checkbox-activo">
+                    <input type="checkbox" name="activo" checked>
+                    Producto Activo
+                </label>
 
-        </form>
+                <button type="submit" class="btn-guardar">Guardar cambios</button>
+
+            </form>
+
+        </div>
+
+        <div class="agregar-gato">
+            <img src="img/gato_editar.png" alt="gato">
+        </div>
 
     </div>
-
-    <!-- IMAGEN DEL GATO -->
-    <div class="agregar-gato">
-        <img src="img/gato_editar.png" alt="gato">
+    <% if("1".equals(request.getParameter("agregado"))) { %>
+    <div class="modal-bg" style="display:flex">
+        <div class="modal">
+            <p>¡El producto ha sido agregado con éxito!</p>
+            <button class="btn-confirmar" onclick="location.href='gestionMenu.jsp'">
+                Volver a la gestión del menú
+            </button>
+        </div>
     </div>
+    <% } %>
 
-</div>
+</article>
+
+<footer class="footer">
+    <p>© 2025 DonMeow - Cafetería Universitaria • Modelos de Desarrollo Web</p>
+</footer>
+<script src="js/validaciones.js"></script>
 
 </body>
 </html>

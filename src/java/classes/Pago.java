@@ -1,4 +1,4 @@
-package modelo;
+package classes;
 
 public class Pago {
 

@@ -8,22 +8,32 @@ import javax.servlet.http.*;
 
 @WebServlet("/EliminarProducto")
 public class EliminarProducto extends HttpServlet {
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        int id = Integer.parseInt(request.getParameter("id"));
+        String idParam = request.getParameter("id");
+
+        if(idParam == null){
+            response.sendRedirect("gestionMenu.jsp");
+            return;
+        }
+
+        int id = Integer.parseInt(idParam);
 
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
             Connection con = DriverManager.getConnection(
-                "jdbc:mysql://localhost:3307/cafeteria",
+                "jdbc:mysql://localhost:3307/cafeteria?useSSL=false",
                 "root", ""
             );
 
+            
             PreparedStatement ps = con.prepareStatement(
-                "DELETE FROM producto WHERE idProducto=?"
+                "UPDATE producto SET activo = 0 WHERE idProducto = ?"
             );
+
             ps.setInt(1, id);
             ps.executeUpdate();
 
@@ -33,6 +43,7 @@ public class EliminarProducto extends HttpServlet {
             e.printStackTrace();
         }
 
-        response.sendRedirect("ModificarProducto.jsp?eliminado=1");
+       
+        response.sendRedirect("editarProducto.jsp?id=" + id + "&eliminado=1");
     }
 }

@@ -27,7 +27,6 @@ public class EditarProducto extends HttpServlet {
         String categoria = request.getParameter("categoria");
         String activo = request.getParameter("activo") != null ? "1" : "0";
 
-        // Imagen nueva (si existe)
         Part imagenPart = request.getPart("imagen");
         String nuevaImagen = imagenPart.getSubmittedFileName();
 
@@ -39,7 +38,6 @@ public class EditarProducto extends HttpServlet {
                 "jdbc:mysql://localhost:3307/cafeteria?useSSL=false", "root", ""
             );
 
-            // Obtener nombre actual de la imagen si no se sube una nueva
             if(nuevaImagen == null || nuevaImagen.trim().isEmpty()){
 
                 PreparedStatement psOld = con.prepareStatement(
@@ -52,7 +50,6 @@ public class EditarProducto extends HttpServlet {
             } else {
                 imagenFinal = nuevaImagen;
 
-                // Guardar la imagen nueva
                 String ruta = request.getServletContext().getRealPath("/img/");
                 File f = new File(ruta);
                 if(!f.exists()) f.mkdir();
@@ -68,7 +65,6 @@ public class EditarProducto extends HttpServlet {
                 }
             }
 
-            // Actualizar BD
             PreparedStatement ps = con.prepareStatement(
                 "UPDATE producto SET nombre=?, precio=?, descripcion=?, idCategoria=?, imagen=?, activo=? WHERE idProducto=?"
             );
@@ -89,6 +85,7 @@ public class EditarProducto extends HttpServlet {
             return;
         }
 
-        response.sendRedirect("gestionMenu.jsp");
+        response.sendRedirect("editarProducto.jsp?id=" + id + "&guardado=1");
+
     }
 }

@@ -27,16 +27,13 @@ public class AgregarProducto extends HttpServlet {
         String categoria = request.getParameter("categoria");
         String activo = request.getParameter("activo") != null ? "1" : "0";
 
-        // ----------- Subida de IMAGEN -----------
         Part imagenPart = request.getPart("imagen");
         String nombreImagen = imagenPart.getSubmittedFileName();
 
-        // Ruta real dentro del servidor (carpeta /img/)
         String rutaImg = request.getServletContext().getRealPath("/img/");
         File uploadDir = new File(rutaImg);
         if (!uploadDir.exists()) uploadDir.mkdir();
 
-        // Guardar archivo
         try (InputStream is = imagenPart.getInputStream()) {
             FileOutputStream fos = new FileOutputStream(rutaImg + File.separator + nombreImagen);
             byte[] buffer = new byte[1024];
@@ -47,7 +44,6 @@ public class AgregarProducto extends HttpServlet {
             fos.close();
         }
 
-        // ----------- INSERTAR EN MYSQL -----------
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
             Connection con = DriverManager.getConnection(
@@ -74,7 +70,6 @@ public class AgregarProducto extends HttpServlet {
             return;
         }
 
-        // Redirigir de vuelta a gestión del menú
-        response.sendRedirect("gestionMenu.jsp");
+        response.sendRedirect("agregarProducto.jsp?agregado=1");
     }
 }

@@ -6,14 +6,16 @@ public class Usuario {
     private String nombre;
     private String correo;
     private String contrasenia;
+    private String tipo;   
 
     public Usuario() {}
 
-    public Usuario(int idUsuario, String nombre, String correo, String contrasenia) {
+    public Usuario(int idUsuario, String nombre, String correo, String contrasenia, String tipo) {
         this.idUsuario = idUsuario;
         this.nombre = nombre;
         this.correo = correo;
         this.contrasenia = contrasenia;
+        this.tipo = tipo;
     }
 
     public int getIdUsuario() {
@@ -46,5 +48,13 @@ public class Usuario {
 
     public void setContrasenia(String contrasenia) {
         this.contrasenia = contrasenia;
+    }
+
+    public String getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
     }
 }

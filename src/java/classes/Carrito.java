@@ -52,7 +52,7 @@ public class Carrito {
         this.items = items;
     }
 
-    // Método para calcular total dinámico
+    
     public double calcularSubtotal() {
         double total = 0;
         for (ItemCarrito it : items) {

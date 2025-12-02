@@ -1,155 +1,183 @@
 <%@ page import="java.sql.*" %>
-<%@ page contentType="text/html;charset=UTF-8" %>
+<%@ page import="classes.Carrito" %>
+<%@ page import="classes.ItemCarrito" %>
+<%@ page contentType="text/html; charset=UTF-8" %>
 
 <%
-    // Validación de sesión
-    if(session.getAttribute("idUsuario") == null){
+    // Verificar login
+    if (session.getAttribute("idUsuario") == null) {
         response.sendRedirect("login.jsp");
         return;
     }
 
-    int idUser = (int) session.getAttribute("idUsuario");
-
-    Class.forName("com.mysql.cj.jdbc.Driver");
-    Connection con = DriverManager.getConnection(
-        "jdbc:mysql://localhost:3307/cafeteria?useSSL=false", "root", ""
-    );
-
-    // Obtener último carrito del usuario
-    PreparedStatement psCar = con.prepareStatement(
-        "SELECT * FROM carrito WHERE idUsuario=? ORDER BY idCarrito DESC LIMIT 1"
-    );
-    psCar.setInt(1, idUser);
-    ResultSet car = psCar.executeQuery();
-
-    int idCarrito = 0;
-    if(car.next()) idCarrito = car.getInt("idCarrito");
-
-    // Obtener items del carrito
-    PreparedStatement psItems = con.prepareStatement(
-        "SELECT i.*, p.nombre, p.imagen, p.precio FROM item_carrito i " +
-        "JOIN producto p ON i.idProducto=p.idProducto " +
-        "WHERE idCarrito=?"
-    );
-    psItems.setInt(1, idCarrito);
-    ResultSet items = psItems.executeQuery();
+    Carrito carrito = (Carrito) session.getAttribute("carrito");
 %>
 
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+    <meta charset="UTF-8">
     <title>Mi carrito - DonMeow</title>
     <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 
 <body class="principal-body">
 
-<!-- HEADER -->
 <header class="header-cliente">
     <div class="logo-cliente">
-        <img src="img/logo.png">
+        <img src="img/logo.png" alt="Logo DonMeow">
         <span>DonMeow</span>
     </div>
 
-    <input class="buscar" placeholder="Buscar productos...">
+    <form action="BuscarProducto" method="GET" class="form-buscar">
+        <input type="text" name="q" class="buscar" placeholder="Buscar productos…">
+    </form>
 
     <nav class="nav-cliente">
-        <div class="menu-pedidos">
-            <span class="menu-trigger">Mis pedidos ▾</span>
-            <ul class="menu-list">
+        <div class="menu-pedidos" data-dropdown>
+            <span class="menu-trigger" data-trigger>Mis pedidos</span>
+
+            <ul class="menu-list" data-menu>
                 <li><a href="misPedidos.jsp">Historial</a></li>
                 <li><a href="pendientes.jsp">Pendientes</a></li>
             </ul>
         </div>
 
-        <a href="carrito.jsp">🛒 Carrito</a>
-        <a href="logout.jsp">Cerrar Sesión</a>
+        <a href="carrito.jsp"><i class="fa-solid fa-cart-shopping"></i> Carrito</a>
+        <a href="CerrarSesion">Cerrar Sesión</a>
     </nav>
 </header>
 
-<!-- TÍTULO -->
-<h1 class="titulo-carrito">Mi carrito de compra</h1>
+<article class="contenido">
+    <a href="javascript:history.back()" class="regresar-link">⟵ Regresar</a>
 
-<div class="carrito-contenedor">
-
-    <!-- LISTA DE PRODUCTOS -->
-    <div class="carrito-lista">
-
-        <%
-            double total = 0;
-            boolean hayProductos = false;
-
-            while(items.next()){
-                hayProductos = true;
-                double sub = items.getInt("cantidad") * items.getDouble("precioUnitario");
-                total += sub;
-        %>
-
-        <div class="carrito-item">
-            <img src="img/<%= items.getString("imagen") %>" class="carrito-img">
-
-            <div class="carrito-info">
-                <h3><%= items.getString("nombre") %></h3>
-                <p><b>$<%= items.getDouble("precio") %></b></p>
-                <p>Cantidad: <%= items.getInt("cantidad") %></p>
-            </div>
-
-            <a href="EliminarItemCarrito?id=<%= items.getInt("idItem") %>"
-               class="carrito-eliminar">🗑 Eliminar</a>
-        </div>
-
-        <% } %>
-
-        <% if(!hayProductos){ %>
-            <p class="vacio">Tu carrito está vacío.</p>
-        <% } %>
-
-        <a href="indexCliente.jsp" class="btn-seguir">Seguir comprando</a>
-    </div>
-
-    <!-- RESUMEN DEL TOTAL -->
-    <div class="carrito-total-box">
-        <h3>Total estimado:</h3>
-        <p class="total-valor">$<%= total %></p>
-
-        <a href="pago.jsp" class="btn-confirmar">Continuar con el pago</a>
-    </div>
-
-</div>
-
-<!-- RECOMENDACIONES -->
-<h2 class="recomendaciones-titulo">Recomendaciones para ti</h2>
-
-<div class="recomendaciones">
+    <h1 class="titulo-carrito">Mi carrito de compra</h1>
 
 <%
-    PreparedStatement psRec = con.prepareStatement(
-        "SELECT * FROM producto WHERE activo=1 ORDER BY RAND() LIMIT 3"
-    );
-    ResultSet recs = psRec.executeQuery();
-
-    while(recs.next()){
+    if (carrito == null || carrito.getItems().isEmpty()) {
 %>
 
-    <div class="rec-item">
-        <img src="img/<%= recs.getString("imagen") %>" class="rec-img">
-
-        <h4><%= recs.getString("nombre") %></h4>
-        <p><b>$<%= recs.getDouble("precio") %></b></p>
-
-        <a href="AgregarCarrito?producto=<%= recs.getInt("idProducto") %>"
-           class="rec-agregar">🛒</a>
+    <div class="carrito-vacio">
+        <p>Tu carrito está vacío.</p>
+        <a href="indexCliente.jsp" class="regresar-link">Ver menú</a>
     </div>
 
 <%
+    } else {
+
+        double total = carrito.calcularSubtotal();
+
+        Class.forName("com.mysql.cj.jdbc.Driver");
+        Connection con = DriverManager.getConnection(
+            "jdbc:mysql://localhost:3307/cafeteria?useSSL=false",
+            "root", ""
+        );
+
+        PreparedStatement psProd = con.prepareStatement(
+            "SELECT nombre, imagen FROM producto WHERE idProducto=?"
+        );
+%>
+
+    <div class="carrito-contenido">
+
+        <div class="carrito-lista">
+
+        <%
+            for (ItemCarrito it : carrito.getItems()) {
+
+                psProd.setInt(1, it.getIdProducto());
+                ResultSet rsP = psProd.executeQuery();
+
+                String nombreProd = "Producto";
+                String imagen = "sinimagen.png";
+
+                if (rsP.next()) {
+                    nombreProd = rsP.getString("nombre");
+                    imagen = rsP.getString("imagen");
+                }
+        %>
+
+            <div class="item-carrito">
+                <img src="img/productos/<%= imagen %>" class="img-producto" alt="<%= nombreProd %>">
+
+                <div class="info-item">
+                    <h3><%= nombreProd %></h3>
+                    <p>Precio: $<%= it.getPrecioUnitario() %></p>
+
+                    <div class="cantidad-container">
+                        <a class="btn-cantidad" href="ActualizarCantidadCarrito?id=<%= it.getIdProducto() %>&accion=-">−</a>
+                        <span class="cantidad-num"><%= it.getCantidad() %></span>
+                        <a class="btn-cantidad" href="ActualizarCantidadCarrito?id=<%= it.getIdProducto() %>&accion=%2B">+</a>
+                    </div>
+
+                    <p>Subtotal: $<%= it.getSubtotal() %></p>
+                </div>
+
+                <a href="EliminarItemCarrito?id=<%= it.getIdProducto() %>"
+                   class="btn-eliminar">Eliminar</a>
+            </div>
+
+        <% } %>
+        </div>
+
+        <aside class="carrito-resumen">
+            <h2>Total estimado:</h2>
+            <p class="total-monto">$<%= total %></p>
+
+            <a href="pago.jsp" class="btn-pago">Continuar con el pago</a>
+        </aside>
+    </div>
+
+    <div class="carrito-acciones">
+        <a href="indexCliente.jsp" class="btn-secundario">
+            Seguir comprando
+        </a>
+    </div>
+
+    <%
+        PreparedStatement psRec = con.prepareStatement(
+            "SELECT idProducto, nombre, precio, imagen " +
+            "FROM producto WHERE activo = 1 ORDER BY RAND() LIMIT 3"
+        );
+        ResultSet recs = psRec.executeQuery();
+    %>
+
+    <h2 class="titulo-reco">Recomendaciones para ti</h2>
+
+    <div class="reco-gato-layout">
+
+        <div class="reco-container">
+            <% while (recs.next()) { %>
+
+                <div class="reco-item">
+                    <img src="img/productos/<%= recs.getString("imagen") %>" class="reco-img" alt="<%= recs.getString("nombre") %>">
+                    <h3><%= recs.getString("nombre") %></h3>
+                    <p>$<%= recs.getDouble("precio") %></p>
+
+                    <a class="btn-carrito" href="AgregarCarrito?producto=<%= recs.getInt("idProducto") %>">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                    </a>
+                </div>
+
+            <% } %>
+        </div>
+
+        <div class="imagen-gato-carrito">
+            <img src="img/gato_carro.png" alt="Gato Carrito">
+        </div>
+    </div>
+
+<%
+        con.close();
     }
 %>
 
-</div>
+</article>
+
+<footer class="footer">
+    <p>© 2025 DonMeow - Cafetería Universitaria • Modelos de Desarrollo Web</p>
+</footer>
 
 </body>
 </html>
-
-<%
-con.close();
-%>

@@ -1,28 +1,72 @@
 <%@ page import="java.sql.*" %>
+<%@ page import="java.util.ArrayList" %>
+<%@ page import="classes.Producto" %>
+<%@ page import="classes.Categoria" %>
 <%@ page contentType="text/html;charset=UTF-8"%>
 
+<%!
+
+ArrayList<Producto> obtenerProductos(Connection con, int idCat, int limite)
+throws Exception {
+    String sql = "SELECT * FROM producto WHERE idCategoria=? AND activo=1";
+    if(limite > 0) sql += " LIMIT " + limite;
+
+    PreparedStatement ps = con.prepareStatement(sql);
+    ps.setInt(1, idCat);
+
+    ResultSet rs = ps.executeQuery();
+    ArrayList<Producto> lista = new ArrayList<>();
+
+    while(rs.next()){
+        Producto p = new Producto(
+            rs.getInt("idProducto"),
+            rs.getString("nombre"),
+            rs.getString("descripcion"),
+            rs.getDouble("precio"),
+            rs.getString("imagen"),
+            rs.getInt("idCategoria")
+        );
+        lista.add(p);
+    }
+    return lista;
+}
+
+
+ArrayList<Categoria> obtenerCategorias(Connection con) throws Exception {
+    ArrayList<Categoria> lista = new ArrayList<>();
+
+    PreparedStatement ps = con.prepareStatement("SELECT * FROM categoria");
+    ResultSet rs = ps.executeQuery();
+
+    while(rs.next()){
+        Categoria c = new Categoria(
+            rs.getInt("idCategoria"),
+            rs.getString("nombre")
+        );
+        lista.add(c);
+    }
+    return lista;
+}
+
+%>
+
 <%
-    // VERIFICAR QUE EL USUARIO ESTÁ LOGUEADO
+    
     if(session.getAttribute("idUsuario") == null){
         response.sendRedirect("login.jsp");
         return;
     }
 
-    String nombreUsuario = (String) session.getAttribute("nombre");
+    String idCat = request.getParameter("cat");
 
-    // CONEXIÓN A BD
+    
     Class.forName("com.mysql.cj.jdbc.Driver");
     Connection con = DriverManager.getConnection(
-            "jdbc:mysql://localhost:3307/cafeteria?useSSL=false",
-            "root",
-            ""
+        "jdbc:mysql://localhost:3307/cafeteria?useSSL=false",
+        "root", ""
     );
 
-    // CONSULTAR CATEGORÍAS
-    PreparedStatement psCat = con.prepareStatement("SELECT * FROM categoria");
-    ResultSet rsCat = psCat.executeQuery();
-
-    String idCat = request.getParameter("cat");
+    ArrayList<Categoria> categorias = obtenerCategorias(con);
 %>
 
 <!DOCTYPE html>
@@ -30,170 +74,171 @@
 <head>
     <meta charset="UTF-8">
     <title>DonMeow - Menú</title>
-    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/estilos.css">
+    <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 
 <body class="principal-body">
 
 <header class="header-cliente">
-    
+
     <div class="logo-cliente">
         <img src="img/logo.png">
         <span>DonMeow</span>
     </div>
 
-    <input type="text" class="buscar" placeholder="Buscar productos…">
+    <form action="BuscarProducto" method="GET" class="form-buscar">
+        <input type="text" name="q" class="buscar" placeholder="Buscar productos…">
+    </form>
 
     <nav class="nav-cliente">
-        <div class="menu-pedidos">
-            <span class="menu-trigger">Mis pedidos</span>
-            <ul class="menu-list">
+        <div class="menu-pedidos" data-dropdown>
+            <span class="menu-trigger" data-trigger>Mis pedidos</span>
+
+            <ul class="menu-list" data-menu>
                 <li><a href="misPedidos.jsp">Historial</a></li>
                 <li><a href="pendientes.jsp">Pendientes</a></li>
             </ul>
         </div>
-        <a href="carrito.jsp">🛒 Carrito</a>
-        <a href="logout.jsp">Cerrar Sesión</a>
+
+
+        <a href="carrito.jsp"><i class="fa-solid fa-cart-shopping"></i> Carrito</a>
+        <a href="CerrarSesion">Cerrar Sesión</a>
     </nav>
 
 </header>
+<article class="contenido">
 
+    <section class="categorias-section">
+        <h2 class="titulo-cat">Categorías:</h2>
+        <div class="categorias">
+            <% for(Categoria c : categorias) { %>
+                <a class="btn-cat" href="indexCliente.jsp?cat=<%= c.getIdCategoria() %>">
+                    <%= c.getNombre() %>
+                </a>
+            <% } %>
+        </div>
+    </section>
 
-<!-- CATEGORÍAS -->
-<section class="categorias-section">
-    <h2 class="titulo-cat">Categorías:</h2>
-    <div class="categorias">
-        <% while(rsCat.next()) { %>
-            <a class="btn-cat" href="indexCliente.jsp?cat=<%= rsCat.getInt("idCategoria") %>">
-                <%= rsCat.getString("nombre") %>
-            </a>
-        <% } %>
-    </div>
-</section>
-
-
-<!-- ===================================== -->
-<!--       PREVIEW SI NO HAY CAT          -->
-<!-- ===================================== -->
-<%
+    <%
     if(idCat == null){
-%>
 
-<section class="productos-section">
-    <h2>Bebidas</h2>
-    <div class="productos">
-        <%
-            PreparedStatement ps1 = con.prepareStatement(
-                "SELECT * FROM producto WHERE idCategoria=1 AND activo=1 LIMIT 4"
-            );
-            ResultSet r1 = ps1.executeQuery();
-            while(r1.next()){
-        %>
-            <div class="producto">
-                <img src="img/<%= r1.getString("imagen") %>">
-                <h3><%= r1.getString("nombre") %></h3>
-                <p class="precio">$<%= r1.getDouble("precio") %></p>
-                <a class="btn-carrito" href="AgregarCarrito?producto=<%= r1.getInt("idProducto") %>">🛒</a>
-            </div>
-        <% } %>
-    </div>
-</section>
+        ArrayList<Producto> bebidas = obtenerProductos(con, 1, 4);
+        ArrayList<Producto> snacks  = obtenerProductos(con, 2, 4);
+        ArrayList<Producto> comidas = obtenerProductos(con, 3, 4);
+    %>
 
+    <section class="productos-section">
+        <h2>Bebidas</h2>
+        <div class="productos">
+            <% for(Producto p : bebidas){ %>
+                <div class="producto">
+                    <a href="producto.jsp?id=<%= p.getIdProducto() %>">
+                        <img src="img/productos/<%= p.getImagen() %>">
+                        <h3><%= p.getNombre() %></h3>
+                        <p class="precio">$<%= p.getPrecio() %></p>
+                    </a>
+                    <a class="btn-carrito" href="AgregarCarrito?producto=<%= p.getIdProducto() %>">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                    </a>
 
-<section class="productos-section">
-    <h2>Snacks</h2>
-    <div class="productos">
-        <%
-            PreparedStatement ps2 = con.prepareStatement(
-                "SELECT * FROM producto WHERE idCategoria=2 AND activo=1 LIMIT 4"
-            );
-            ResultSet r2 = ps2.executeQuery();
-            while(r2.next()){
-        %>
-            <div class="producto">
-                <img src="img/<%= r2.getString("imagen") %>">
-                <h3><%= r2.getString("nombre") %></h3>
-                <p class="precio">$<%= r2.getDouble("precio") %></p>
-                <a class="btn-carrito" href="agregarCarrito?producto=<%= r2.getInt("idProducto") %>">🛒</a>
-            </div>
-        <% } %>
-    </div>
-</section>
+                </div>
+            <% } %>
+        </div>
+    </section>
 
 
-<section class="productos-section">
-    <h2>Comidas</h2>
-    <div class="productos">
-        <%
-            PreparedStatement ps3 = con.prepareStatement(
-                "SELECT * FROM producto WHERE idCategoria=3 AND activo=1 LIMIT 4"
-            );
-            ResultSet r3 = ps3.executeQuery();
-            while(r3.next()){
-        %>
-            <div class="producto">
-                <img src="img/<%= r3.getString("imagen") %>">
-                <h3><%= r3.getString("nombre") %></h3>
-                <p class="precio">$<%= r3.getDouble("precio") %></p>
-                <a class="btn-carrito" href="agregarCarrito?producto=<%= r3.getInt("idProducto") %>">🛒</a>
-            </div>
-        <% } %>
-    </div>
-</section>
-
-<%
-    } // FIN DE PREVIEW
-%>
+    <section class="productos-section">
+        <h2>Snacks</h2>
+        <div class="productos">
+            <% for(Producto p : snacks){ %>
+                <div class="producto">
+                    <a href="producto.jsp?id=<%= p.getIdProducto() %>">
+                        <img src="img/productos/<%= p.getImagen() %>">
+                        <h3><%= p.getNombre() %></h3>
+                        <p class="precio">$<%= p.getPrecio() %></p>
+                    </a>
+                    <a class="btn-carrito" href="AgregarCarrito?producto=<%= p.getIdProducto() %>">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                    </a>
+                </div>
+            <% } %>
+        </div>
+    </section>
 
 
-<!-- ===================================== -->
-<!--      PRODUCTOS DE UNA CATEGORÍA      -->
-<!-- ===================================== -->
-<%
+    <section class="productos-section">
+        <h2>Comidas</h2>
+        <div class="productos">
+            <% for(Producto p : comidas){ %>
+                <div class="producto">
+                    <a href="producto.jsp?id=<%= p.getIdProducto() %>">
+                        <img src="img/productos/<%= p.getImagen() %>">
+                        <h3><%= p.getNombre() %></h3>
+                        <p class="precio">$<%= p.getPrecio() %></p>
+                    </a>
+                    <a class="btn-carrito" href="AgregarCarrito?producto=<%= p.getIdProducto() %>">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                    </a>
+                </div>
+            <% } %>
+        </div>
+    </section>
+
+    <%
+    } // FIN SIN CATEGORÍA
+    %>
+
+    <%
     if(idCat != null){
-        PreparedStatement psProd = con.prepareStatement(
-            "SELECT * FROM producto WHERE idCategoria=? AND activo=1"
-        );
-        psProd.setInt(1, Integer.parseInt(idCat));
 
-        ResultSet rsProd = psProd.executeQuery();
-%>
+        ArrayList<Producto> lista = obtenerProductos(con, Integer.parseInt(idCat), 0);
+    %>
 
-<section class="productos-section">
-    <h2>Productos</h2>
-    <div class="productos">
-        <% while(rsProd.next()) { %>
-            <div class="producto">
-                <img src="img/<%= rsProd.getString("imagen") %>">
-                <h3><%= rsProd.getString("nombre") %></h3>
-                <p class="precio">$<%= rsProd.getDouble("precio") %></p>
-                <a class="btn-carrito" href="agregarCarrito?producto=<%= rsProd.getInt("idProducto") %>">🛒</a>
-            </div>
-        <% } %>
-    </div>
-</section>
+    <section class="productos-section">
+        <h2>Productos</h2>
+        <div class="productos">
+            <% for(Producto p : lista){ %>
+                <div class="producto">
+                    <a href="producto.jsp?id=<%= p.getIdProducto() %>">
+                        <img src="img/productos/<%= p.getImagen() %>">
+                        <h3><%= p.getNombre() %></h3>
+                        <p class="precio">$<%= p.getPrecio() %></p>
+                    </a>
+                    <a class="btn-carrito" href="AgregarCarrito?producto=<%= p.getIdProducto() %>">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                    </a>
+                </div>
+            <% } %>
+        </div>
+    </section>
 
-<%
-    } // FIN PRODUCTOS POR CAT
-
+    <%
+    } // FIN CON CATEGORÍA
     con.close();
-%>
+    %>
 
-<% if("1".equals(request.getParameter("add"))) { %>
 
-<div class="overlay-alerta">
-    <div class="alerta-box">
-        <h2>¡Producto añadido<br>al carrito con éxito!</h2>
+    <% if("1".equals(request.getParameter("add"))) { %>
 
-        <div class="alerta-botones">
-            <a href="indexCliente.jsp" class="btn-alerta">Seguir comprando</a>
-            <a href="carrito.jsp" class="btn-alerta">Ir al carrito</a>
+    <div class="overlay-alerta">
+        <div class="alerta-box">
+
+            <h2>¡Producto añadido<br>al carrito con éxito!</h2>
+
+            <div class="alerta-botones">
+                <a href="indexCliente.jsp" class="btn-alerta">Seguir comprando</a>
+                <a href="carrito.jsp" class="btn-alerta">Ir al carrito</a>
+            </div>
+
         </div>
     </div>
-</div>
 
-<% } %>
+    <% } %>
+</article>
 
-
+<footer class="footer">
+    <p>© 2025 DonMeow - Cafetería Universitaria • Modelos de Desarrollo Web</p>
+</footer>
 </body>
 </html>
